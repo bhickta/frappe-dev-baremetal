@@ -26,14 +26,9 @@
     state: started
     enabled: yes
 
-# Handled manually instead of mysql_secure_installation for automation
 - name: Set Root Password
   mysql_user:
     name: root
     password: "{{ db_root_password }}"
     login_unix_socket: /var/run/mysqld/mysqld.sock
     priv: "*.*:ALL,GRANT"
-
-handlers:
-  - name: Restart MariaDB
-    service: name=mariadb state=restarted
