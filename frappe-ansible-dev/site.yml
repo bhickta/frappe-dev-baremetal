@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  become: true
+  vars_files:
+    - group_vars/all.yml
+  
+  roles:
+    - common
+    - database
+    - frappe

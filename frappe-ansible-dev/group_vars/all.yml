@@ -1,0 +1,13 @@
+---
+# Project Settings
+frappe_user: "frappe"
+bench_name: "frappe-bench"
+site_name: "dev.local"
+
+# Versions
+node_version: "24.x"
+frappe_branch: "version-15"
+
+# Secrets (Change these if exposing to public)
+admin_password: "admin"
+db_root_password: "admin"

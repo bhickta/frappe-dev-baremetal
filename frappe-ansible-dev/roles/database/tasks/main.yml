@@ -1,0 +1,39 @@
+---
+- name: Install Database Services
+  apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+      - libmysqlclient-dev
+      - redis-server
+    state: present
+
+- name: Configure MariaDB for Frappe (Barracuda/UTF8MB4)
+  copy:
+    dest: /etc/mysql/conf.d/frappe.cnf
+    content: |
+      [mysqld]
+      character-set-client-handshake = FALSE
+      character-set-server = utf8mb4
+      collation-server = utf8mb4_unicode_ci
+      [mysql]
+      default-character-set = utf8mb4
+  notify: Restart MariaDB
+
+- name: Ensure MariaDB Running
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+# Handled manually instead of mysql_secure_installation for automation
+- name: Set Root Password
+  mysql_user:
+    name: root
+    password: "{{ db_root_password }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    priv: "*.*:ALL,GRANT"
+
+handlers:
+  - name: Restart MariaDB
+    service: name=mariadb state=restarted

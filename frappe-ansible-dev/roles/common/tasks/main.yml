@@ -1,0 +1,57 @@
+---
+- name: Update and Upgrade APT
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: Install System Dependencies
+  apt:
+    name:
+      - git
+      - python3-dev
+      - python3-pip
+      - python3-venv
+      - software-properties-common
+      - curl
+      - xvfb
+      - libfontconfig
+      - wkhtmltopdf
+    state: present
+
+- name: Create Frappe User
+  user:
+    name: "{{ frappe_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+
+- name: Grant Passwordless Sudo (Dev Convenience)
+  lineinfile:
+    path: /etc/sudoers.d/frappe
+    line: '{{ frappe_user }} ALL=(ALL) NOPASSWD: ALL'
+    create: yes
+    mode: 0440
+
+# CRITICAL FOR T4G.MEDIUM (Prevents crashes)
+- name: Check if swap file exists
+  stat:
+    path: /swapfile
+  register: swap_file
+
+- name: Create 4GB Swap File
+  command: fallocate -l 4G /swapfile
+  when: not swap_file.stat.exists
+
+- name: Set Swap Permissions
+  file:
+    path: /swapfile
+    mode: '0600'
+  when: not swap_file.stat.exists
+
+- name: Make Swap
+  command: mkswap /swapfile
+  when: not swap_file.stat.exists
+
+- name: Enable Swap
+  command: swapon /swapfile
+  when: not swap_file.stat.exists
