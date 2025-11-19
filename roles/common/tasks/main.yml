@@ -18,6 +18,7 @@
       - xvfb
       - libfontconfig
       - wkhtmltopdf
+      - redis-server
     state: present
 
 - name: Create Frappe User
