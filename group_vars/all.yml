@@ -5,7 +5,7 @@ bench_name: "frappe-bench"
 site_name: "dev.local"
 
 # Versions
-node_version: "24.x"
+node_version: "20.x"
 frappe_branch: "version-15"
 
 # Secrets (Change these if exposing to public)
