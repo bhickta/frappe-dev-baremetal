@@ -25,6 +25,7 @@
   pip:
     name: frappe-bench
     executable: pip3
+    extra_args: --break-system-packages
 
 - name: Initialize Bench (Can take time)
   become_user: "{{ frappe_user }}"
