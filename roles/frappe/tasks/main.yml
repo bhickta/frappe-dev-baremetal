@@ -40,15 +40,60 @@
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
 
-- name: Get Apps (Payments, ERPNext, HRMS)
+# --- SSH SETUP FOR PRIVATE REPOS ---
+
+- name: Generate SSH Key for Frappe User
+  user:
+    name: "{{ frappe_user }}"
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+
+- name: Read SSH Public Key
+  shell: cat /home/{{ frappe_user }}/.ssh/id_rsa.pub
+  register: ssh_pub_key
+  changed_when: false
+
+- name: Display SSH Key (Add this to GitHub/GitLab Deploy Keys)
+  debug:
+    msg: 
+      - "-----------------------------------------------------------"
+      - "{{ ssh_pub_key.stdout }}"
+      - "-----------------------------------------------------------"
+
+- name: Pause for Manual Step
+  pause:
+    prompt: "Copy the key above, add it to your Repo's Deploy Keys (Settings > Deploy Keys), then press Enter to continue..."
+
+- name: Add GitHub to known_hosts (Prevents 'Yes/No' hang)
+  become_user: "{{ frappe_user }}"
+  shell: "ssh-keyscan github.com >> ~/.ssh/known_hosts"
+  args:
+    chdir: "/home/{{ frappe_user }}"
+  ignore_errors: yes
+
+# --- APP DOWNLOADS ---
+
+- name: Get Public Apps (Payments, ERPNext, HRMS, India Compliance)
   become_user: "{{ frappe_user }}"
   shell: |
     bench get-app payments &&
     bench get-app --branch {{ frappe_branch }} erpnext &&
-    bench get-app --branch {{ frappe_branch }} hrms
+    bench get-app --branch {{ frappe_branch }} hrms &&
+    bench get-app --branch {{ frappe_branch }} india_compliance
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
     creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/erpnext"
+
+- name: Get Private App (Raplbaddi)
+  become_user: "{{ frappe_user }}"
+  # Using 'creates' ensures we don't fail if it's already cloned
+  command: "bench get-app --branch develop git@github.com:bhickta/raplbaddi.git"
+  args:
+    chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+    creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/raplbaddi"
+
+# --- SITE CREATION ---
 
 - name: Create New Site
   become_user: "{{ frappe_user }}"
@@ -61,9 +106,23 @@
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
     creates: "/home/{{ frappe_user }}/{{ bench_name }}/sites/{{ site_name }}"
 
-- name: Install HRMS on Site
+# --- APP INSTALLATION (Requires Temp Redis) ---
+
+- name: Start Temporary Redis (For Installation)
   become_user: "{{ frappe_user }}"
-  command: "bench --site {{ site_name }} install-app hrms"
+  shell: "/usr/bin/redis-server --port 13000 --daemonize yes"
+  ignore_errors: yes
+
+- name: Install Apps on Site (HRMS, India Compliance, Raplbaddi)
+  become_user: "{{ frappe_user }}"
+  shell: |
+    bench --site {{ site_name }} install-app hrms &&
+    bench --site {{ site_name }} install-app india_compliance &&
+    bench --site {{ site_name }} install-app raplbaddi
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+  ignore_errors: yes
+
+- name: Kill Temporary Redis
+  shell: "pkill redis-server"
   ignore_errors: yes
