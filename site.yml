@@ -3,7 +3,23 @@
   become: true
   vars_files:
     - group_vars/all.yml
-  
+
+  vars_prompt:
+    - name: prompt_db_pass
+      prompt: "Enter DB Root Password (press Enter to use default from group_vars)"
+      default: "{{ db_root_password }}"
+      private: yes
+
+  pre_tasks:
+    - name: Create .my.cnf credential file
+      copy:
+        dest: /root/.my.cnf
+        mode: '0600'
+        content: |
+          [client]
+          user=root
+          password={{ prompt_db_pass }}
+
   roles:
     - common
     - database
