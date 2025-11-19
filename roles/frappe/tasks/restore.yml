@@ -1,0 +1,55 @@
+---
+- hosts: localhost
+  become: true
+  vars_files:
+    - group_vars/all.yml
+  
+  vars_prompt:
+    - name: backup_url
+      prompt: "Enter the Backup URL to Restore From"
+      private: no
+
+    - name: api_key
+      prompt: "Enter your API Key"
+      private: no
+    
+    - name: api_secret
+      prompt: "Enter your API Secret"
+      private: yes  # This hides the input for security
+
+  tasks:
+    - name: Download Backup using API Token
+      get_url:
+        url: "{{ backup_url }}"
+        dest: /tmp/restore_backup.sql.gz
+        mode: '0644'
+        headers:
+          Authorization: "token {{ api_key }}:{{ api_secret }}"
+        force: yes
+
+    - name: Restore Database (Force Overwrite)
+      become_user: "{{ frappe_user }}"
+      # We use --force to bypass the "Are you sure?" prompt
+      command: >
+        bench --site {{ site_name }} restore /tmp/restore_backup.sql.gz
+        --db-root-password {{ db_root_password }}
+        --force
+      args:
+        chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+
+    - name: Run Migrations (Sync Schema)
+      become_user: "{{ frappe_user }}"
+      command: "bench --site {{ site_name }} migrate"
+      args:
+        chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+
+    - name: Clear Cache
+      become_user: "{{ frappe_user }}"
+      command: "bench --site {{ site_name }} clear-cache"
+      args:
+        chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+
+    - name: Cleanup Downloaded File
+      file:
+        path: /tmp/restore_backup.sql.gz
+        state: absent

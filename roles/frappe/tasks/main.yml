@@ -123,6 +123,13 @@
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
   ignore_errors: yes
 
+- name: Bench Migrate
+  become_user: "{{ frappe_user }}"
+  command: "bench --site {{ site_name }} migrate"
+  args:
+    chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+  ignore_errors: yes
+
 - name: Kill Temporary Redis
   shell: "pkill redis-server"
   ignore_errors: yes
