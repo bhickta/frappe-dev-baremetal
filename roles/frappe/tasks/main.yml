@@ -36,7 +36,7 @@
 
 - name: Enable Developer Mode
   become_user: "{{ frappe_user }}"
-  command: "bench set-config developer_mode 1"
+  command: "bench set-config -g developer_mode 1"
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
 
