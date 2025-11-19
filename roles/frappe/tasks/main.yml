@@ -72,28 +72,42 @@
     chdir: "/home/{{ frappe_user }}"
   ignore_errors: yes
 
-# --- APP DOWNLOADS ---
+# --- APP DOWNLOADS (SPLIT FOR RELIABILITY) ---
 
-- name: Get Public Apps (Payments, ERPNext, HRMS, India Compliance)
+- name: Get Payments App
   become_user: "{{ frappe_user }}"
-  shell: |
-    bench get-app payments &&
-    bench get-app --branch {{ frappe_branch }} erpnext &&
-    bench get-app --branch {{ frappe_branch }} hrms &&
-    bench get-app --branch {{ frappe_branch }} india_compliance
+  command: "bench get-app payments"
+  args:
+    chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+    creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/payments"
+
+- name: Get ERPNext
+  become_user: "{{ frappe_user }}"
+  command: "bench get-app --branch {{ frappe_branch }} erpnext"
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
     creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/erpnext"
 
+- name: Get HRMS
+  become_user: "{{ frappe_user }}"
+  command: "bench get-app --branch {{ frappe_branch }} hrms"
+  args:
+    chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+    creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/hrms"
+
+- name: Get India Compliance (Full URL Required)
+  become_user: "{{ frappe_user }}"
+  command: "bench get-app --branch {{ frappe_branch }} https://github.com/resilient-tech/india-compliance.git"
+  args:
+    chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
+    creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/india_compliance"
+
 - name: Get Private App (Raplbaddi)
   become_user: "{{ frappe_user }}"
-  # Using 'creates' ensures we don't fail if it's already cloned
   command: "bench get-app --branch develop git@github.com:bhickta/raplbaddi.git"
   args:
     chdir: "/home/{{ frappe_user }}/{{ bench_name }}"
     creates: "/home/{{ frappe_user }}/{{ bench_name }}/apps/raplbaddi"
-
-# --- SITE CREATION ---
 
 - name: Create New Site
   become_user: "{{ frappe_user }}"
